@@ -512,7 +512,6 @@ if event_file is not None and today_file is not None:
             y = y.loc[order_idx].reset_index(drop=True)
     # --- Outlier removal ---
     st.write("🚦 Starting outlier removal...")
-    y = event_df[target_col].astype(int)
     X, y = remove_outliers(X, y, method="iforest", contamination=0.012)
     X = X.reset_index(drop=True).copy()
     y = pd.Series(y).reset_index(drop=True)
@@ -593,7 +592,7 @@ if event_file is not None and today_file is not None:
         lgb_clf.fit(
             X_tr, y_tr,
             eval_set=[(X_va, y_va)],
-            callbacks=[lgb.log_evaluation(0)]
+            callbacks=[lgb.early_stopping(50), lgb.log_evaluation(0)]
         )
         cat_clf.fit(X_tr, y_tr, eval_set=[(X_va, y_va)], verbose=False)
 
