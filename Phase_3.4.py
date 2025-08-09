@@ -590,7 +590,11 @@ if event_file is not None and today_file is not None:
 
         # Fit with early stopping
         xgb_clf.fit(X_tr, y_tr, eval_set=[(X_va, y_va)], verbose=False)
-        lgb_clf.fit(X_tr, y_tr, eval_set=[(X_va, y_va)], verbose=False)
+        lgb_clf.fit(
+            X_tr, y_tr,
+            eval_set=[(X_va, y_va)],
+            callbacks=[lgb.log_evaluation(0)]
+        )
         cat_clf.fit(X_tr, y_tr, eval_set=[(X_va, y_va)], verbose=False)
 
         # OOF preds
