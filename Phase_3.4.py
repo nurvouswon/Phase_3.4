@@ -492,7 +492,24 @@ if event_file is not None and today_file is not None:
         return df_ref, df_today_ref
 
     X, X_today = add_synergy_feats(X, X_today)
+    # ---- Time-aware ordering BEFORE outlier removal ----
+    y = event_df[target_col].astype(int)
 
+    if "game_date" in event_df.columns:
+    # Convert to datetime safely
+        dates = pd.to_datetime(event_df["game_date"], errors="coerce")
+    # Fill NaT with earliest observed date to keep them at the start (stable)
+        min_date = dates.min()
+        if pd.isna(min_date):
+        # If all NaT, just skip ordering
+            st.warning("All game_date values are NaT; skipping chronological ordering.")
+        else:
+            dates_filled = dates.fillna(min_date)
+        # Stable sort to preserve original order within same date
+            order_idx = dates_filled.sort_values(kind="mergesort").index
+        # Use .loc (label-based) on X and y which still align 1:1 with event_df here
+            X = X.loc[order_idx].reset_index(drop=True)
+            y = y.loc[order_idx].reset_index(drop=True)
     # --- Outlier removal ---
     st.write("🚦 Starting outlier removal...")
     y = event_df[target_col].astype(int)
@@ -522,12 +539,6 @@ if event_file is not None and today_file is not None:
     st.write("🎯 Feature engineering complete.")
 
     # ========== Train/Validation via Time-Aware Splits ==========
-    # Sort by game_date if present to avoid leakage
-    if "game_date" in event_df.columns:
-        order_idx = event_df["game_date"].reset_index().sort_values("game_date").index
-        X = X.iloc[order_idx].reset_index(drop=True)
-        y = y.iloc[order_idx].reset_index(drop=True)
-
     n_splits = 5
     tscv = TimeSeriesSplit(n_splits=n_splits)
 
